@@ -93,8 +93,11 @@ def probe_terminal() -> TerminalCapabilities:
     if sys.__stdout__.isatty():
         try:
             rows, columns, screen_width, screen_height = get_tiocgwinsz()
-            width = int(screen_width / columns)
-            height = int(screen_height / rows)
+            # A newly opened PTY may not have received its window size yet.
+            # Leave the size unknown so the terminal query supplies it below.
+            if rows and columns:
+                width = screen_width // columns
+                height = screen_height // rows
         except OSError as e:
             logger.debug("Failed to get cell size via ioctl, falling back to escape sequence", exc_info=e)
 

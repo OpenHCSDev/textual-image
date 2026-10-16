@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from typing import Iterator
 from unittest.mock import MagicMock, patch
 
-from pytest import raises
+from pytest import mark, raises
 
 from textual_image._terminal import (
     TerminalCapabilities,
@@ -150,7 +150,8 @@ def test_probe_terminal_da_only_no_sixel() -> None:
     assert caps.tgp is False
 
 
-def test_probe_terminal_queries_cell_size_when_ioctl_fails() -> None:
+@mark.parametrize("ioctl_result", [OSError(), (0, 0, 0, 0), (0, 80, 640, 0), (24, 0, 0, 480)])
+def test_probe_terminal_queries_cell_size_when_ioctl_unavailable(ioctl_result) -> None:
     _clear_probe_cache()
 
     @contextmanager
@@ -166,7 +167,7 @@ def test_probe_terminal_queries_cell_size_when_ioctl_fails() -> None:
     with patch("sys.__stdout__") as stdout:
         stdout.isatty.return_value = True
         stdout.write.side_effect = write
-        with patch("textual_image._terminal.get_tiocgwinsz", side_effect=OSError()):
+        with patch("textual_image._terminal.get_tiocgwinsz", side_effect=[ioctl_result]):
             with patch("textual_image._terminal.capture_until_primary_da", capture_da):
                 caps = probe_terminal()
 
